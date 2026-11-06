@@ -1,1 +1,449 @@
-hello! this is a <strong>placeholder</strong> page. Mov is still working on this site!
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Mov's Vault</title>
+		<link rel="stylesheet" href="style.css" />
+	</head>
+	<body>
+		<h1>Mov's Vault</h1>
+		<div class="tilemap-stage">
+			<canvas id="tilemap" role="img" draggable="false"></canvas>
+			<div
+				id="intro-box"
+				class="text-box"
+				data-grid-x="25.5"
+				data-grid-y="19.5"
+				data-grid-width="13"
+				data-grid-height="7"
+				aria-label="Introduction"
+			>
+				Hi! My name is <span style="color: #00cdf9">Man-o-Valor</span>, but you can call me <span style="color: #00cdf9">Mov</span>. I like to code,
+				make games, and draw!<br /><br />This is my personal website, Mov's Vault. It's where I'll keep all of my art and projects. You can also send me
+				anonymous messages!
+			</div>
+			<textarea
+				id="strawpage-box"
+				class="text-box editable-text-box"
+				data-grid-x="25.5"
+				data-grid-y="27.5"
+				data-grid-width="10"
+				data-grid-height="6"
+				aria-label="Anonymous message box"
+				placeholder="Send me an anonymous message!"
+				maxlength="2000"
+			></textarea>
+			<button
+				id="strawpage-button"
+				type="button"
+				class="tilemap-button strawpage-button"
+				data-grid-x="36.5"
+				data-grid-y="30.5"
+				data-grid-width="2"
+				data-grid-height="2"
+				data-normal-slice="0,4"
+				data-hover-slice="3,4"
+				data-icon-tile="4,3"
+				data-hover-icon-tile="5,3"
+				aria-label="Send anonymous message"
+			></button>
+			<span id="strawpage-status" class="visually-hidden" role="status" aria-live="polite"></span>
+		</div>
+		<script src="tilemap.js"></script>
+		<script>
+			const tilemap = window.tilemapData;
+
+			const tileSize = 16;
+			const mapSize = 64;
+			const canvas = document.getElementById("tilemap");
+			const maximumTileDisplaySize = 50;
+			const minimumTilesAcross = 16;
+			const textBoxes = document.querySelectorAll(".text-box");
+			const mapButtons = document.querySelectorAll(".tilemap-button");
+			const strawpageBox = document.getElementById("strawpage-box");
+			const strawpageButton = document.getElementById("strawpage-button");
+			const strawpageStatus = document.getElementById("strawpage-status");
+			const strawpageWebhookUrl = // yes, i committed my webhook url. its already public
+				"https://discord.com/api/webhooks/1568168752036581447/vCJfJEKI7T4fyAGZcHqWyGHX5L7VMWoChCYoT3KfFgHGEkARODl8fToGGNHe7WHHkw-W";
+
+			let tileDisplaySize;
+
+			async function sendStrawpageMessage() {
+				const message = strawpageBox.value;
+				if (!message.trim() || strawpageButton.disabled) return;
+
+				strawpageButton.disabled = true;
+				strawpageStatus.textContent = "Sending message.";
+				try {
+					const response = await fetch(strawpageWebhookUrl, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ content: message, allowed_mentions: { parse: [] } }),
+					});
+					if (!response.ok) throw new Error(`Discord returned ${response.status}.`);
+
+					strawpageBox.value = "";
+					strawpageStatus.textContent = "Message sent.";
+				} catch (error) {
+					console.error("Sending the Strawpage message failed:", error);
+					strawpageStatus.textContent = "Message could not be sent. Please try again.";
+				} finally {
+					strawpageButton.disabled = false;
+				}
+			}
+
+			strawpageButton.addEventListener("click", sendStrawpageMessage);
+
+			function updateDisplaySize() {
+				tileDisplaySize = Math.min(maximumTileDisplaySize, window.innerWidth / minimumTilesAcross);
+				document.documentElement.style.setProperty("--map-width", `${mapSize * tileDisplaySize}px`);
+				document.documentElement.style.setProperty("--tile-display-size", `${tileDisplaySize}px`);
+
+				for (const textBox of textBoxes) {
+					textBox.style.left = `${Number.parseFloat(textBox.dataset.gridX) * tileDisplaySize}px`;
+					textBox.style.top = `${Number.parseFloat(textBox.dataset.gridY) * tileDisplaySize}px`;
+					textBox.style.width = `${Number.parseFloat(textBox.dataset.gridWidth) * tileDisplaySize}px`;
+					textBox.style.height = `${Number.parseFloat(textBox.dataset.gridHeight) * tileDisplaySize}px`;
+				}
+
+				for (const button of mapButtons) {
+					button.style.left = `${Number.parseFloat(button.dataset.gridX) * tileDisplaySize}px`;
+					button.style.top = `${Number.parseFloat(button.dataset.gridY) * tileDisplaySize}px`;
+					button.style.width = `${Number.parseFloat(button.dataset.gridWidth) * tileDisplaySize}px`;
+					button.style.height = `${Number.parseFloat(button.dataset.gridHeight) * tileDisplaySize}px`;
+				}
+			}
+
+			updateDisplaySize();
+			window.addEventListener("resize", updateDisplaySize);
+
+			for (const eventName of ["contextmenu", "dragstart", "selectstart"]) {
+				canvas.addEventListener(eventName, (event) => event.preventDefault());
+			}
+
+			canvas.width = mapSize * tileSize;
+			canvas.height = mapSize * tileSize;
+
+			const context = canvas.getContext("2d");
+			const tileset = new Image();
+
+			context.imageSmoothingEnabled = false;
+
+			function drawTile(sourceX, sourceY, destinationX, destinationY) {
+				context.drawImage(
+					tileset,
+					sourceX * tileSize,
+					sourceY * tileSize,
+					tileSize,
+					tileSize,
+					destinationX * tileSize,
+					destinationY * tileSize,
+					tileSize,
+					tileSize,
+				);
+			}
+
+			function parseTileCoordinates(value) {
+				const coordinates = value?.split(",").map((coordinate) => Number.parseInt(coordinate.trim(), 10));
+				return coordinates?.length === 2 && coordinates.every(Number.isInteger) && coordinates.every((coordinate) => coordinate >= 0)
+					? coordinates
+					: null;
+			}
+
+			function drawButtonIcon(button, buttonContext, hovered, columns, rows) {
+				const hasHoverIcon = button.dataset.hoverIconTile || button.dataset.hoverIconObject;
+				const iconTile = hovered && hasHoverIcon ? button.dataset.hoverIconTile : button.dataset.iconTile;
+				const iconObjectName = hovered && hasHoverIcon ? button.dataset.hoverIconObject : button.dataset.iconObject;
+				let icon;
+
+				if (iconTile) {
+					const [x, y] = parseTileCoordinates(iconTile) ?? [];
+					if (x === undefined || x >= columns || y >= rows) {
+						console.warn(`Invalid ${hovered ? "hover " : ""}icon tile for button: ${iconTile}.`);
+						return;
+					}
+					icon = { x, y, width: 1, height: 1 };
+				} else if (iconObjectName) {
+					icon = tilemap.objects?.[iconObjectName];
+					if (
+						!icon ||
+						![icon.x, icon.y, icon.width, icon.height].every(Number.isInteger) ||
+						icon.x < 0 ||
+						icon.y < 0 ||
+						icon.width < 1 ||
+						icon.height < 1 ||
+						icon.x + icon.width > columns ||
+						icon.y + icon.height > rows
+					) {
+						console.warn(`Invalid ${hovered ? "hover " : ""}icon object for button: ${iconObjectName}.`);
+						return;
+					}
+				} else {
+					return;
+				}
+
+				const iconWidth = icon.width * tileSize;
+				const iconHeight = icon.height * tileSize;
+				buttonContext.drawImage(
+					tileset,
+					icon.x * tileSize,
+					icon.y * tileSize,
+					iconWidth,
+					iconHeight,
+					(buttonContext.canvas.width - iconWidth) / 2,
+					(buttonContext.canvas.height - iconHeight) / 2,
+					iconWidth,
+					iconHeight,
+				);
+			}
+
+			function drawButton(button, hovered, columns, rows) {
+				const buttonContext = button.querySelector("canvas").getContext("2d");
+				const sliceValue = hovered ? button.dataset.hoverSlice || button.dataset.normalSlice : button.dataset.normalSlice;
+				const slice = parseTileCoordinates(sliceValue);
+				buttonContext.clearRect(0, 0, buttonContext.canvas.width, buttonContext.canvas.height);
+
+				if (!slice || slice[0] + 3 > columns || slice[1] + 3 > rows) {
+					console.warn(`Invalid ${hovered ? "hover " : "normal "}nine-slice for button: ${sliceValue}.`);
+					return;
+				}
+
+				const width = buttonContext.canvas.width;
+				const height = buttonContext.canvas.height;
+				const edgeWidth = Math.min(tileSize, width / 2);
+				const edgeHeight = Math.min(tileSize, height / 2);
+				const destinationWidths = [edgeWidth, width - edgeWidth * 2, edgeWidth];
+				const destinationHeights = [edgeHeight, height - edgeHeight * 2, edgeHeight];
+				let destinationY = 0;
+
+				for (let row = 0; row < 3; row += 1) {
+					let destinationX = 0;
+					for (let column = 0; column < 3; column += 1) {
+						const destinationWidth = destinationWidths[column];
+						const destinationHeight = destinationHeights[row];
+						if (destinationWidth > 0 && destinationHeight > 0) {
+							buttonContext.drawImage(
+								tileset,
+								(slice[0] + column) * tileSize,
+								(slice[1] + row) * tileSize,
+								tileSize,
+								tileSize,
+								destinationX,
+								destinationY,
+								destinationWidth,
+								destinationHeight,
+							);
+						}
+						destinationX += destinationWidth;
+					}
+					destinationY += destinationHeights[row];
+				}
+
+				drawButtonIcon(button, buttonContext, hovered, columns, rows);
+			}
+
+			function initializeMapButtons(columns, rows) {
+				for (const button of mapButtons) {
+					const width = Number.parseFloat(button.dataset.gridWidth);
+					const height = Number.parseFloat(button.dataset.gridHeight);
+					if (!Number.isInteger(width) || !Number.isInteger(height) || width < 2 || height < 2) {
+						console.warn("Tilemap buttons need integer grid width and height values of at least 2.");
+						continue;
+					}
+
+					const art = document.createElement("canvas");
+					art.className = "tilemap-button__art";
+					art.setAttribute("aria-hidden", "true");
+					art.width = width * tileSize;
+					art.height = height * tileSize;
+					button.prepend(art);
+
+					let activePointerId = null;
+					const renderState = (pressed) => drawButton(button, pressed, columns, rows);
+
+					button.addEventListener("pointerdown", (event) => {
+						if (!event.isPrimary || event.button !== 0) return;
+						activePointerId = event.pointerId;
+						button.setPointerCapture(event.pointerId);
+						renderState(true);
+					});
+
+					for (const eventName of ["pointerup", "pointercancel", "lostpointercapture"]) {
+						button.addEventListener(eventName, (event) => {
+							if (event.pointerId !== activePointerId) return;
+							activePointerId = null;
+							renderState(false);
+						});
+					}
+
+					renderState(false);
+				}
+			}
+
+			async function renderMap() {
+				await new Promise((resolve, reject) => {
+					tileset.onload = resolve;
+					tileset.onerror = reject;
+					tileset.src = "tileset.png";
+				});
+
+				const columns = Math.floor(tileset.width / tileSize);
+				const rows = Math.floor(tileset.height / tileSize);
+				initializeMapButtons(columns, rows);
+
+				const mapLayers = Array.isArray(tilemap.map) ? tilemap.map : [tilemap.map];
+				if (mapLayers.some((layer) => typeof layer !== "string")) {
+					throw new Error("Every tilemap layer must be a multiline string.");
+				}
+
+				const mapLinesByLayer = mapLayers.map((layer, layerIndex) => {
+					const lines = layer.split(/\r?\n/).slice(0, mapSize);
+					if (lines.some((line) => line.length > mapSize)) {
+						throw new Error(`Tilemap layer ${layerIndex} rows must be at most ${mapSize} characters wide.`);
+					}
+					return lines;
+				});
+
+				const animationStart = performance.now();
+				const animationDelays = new Set();
+				const warnedCharacters = new Set();
+
+				function drawScene() {
+					context.clearRect(0, 0, canvas.width, canvas.height);
+					for (let row = 0; row < mapSize; row += 1) {
+						for (let column = 0; column < mapSize; column += 1) {
+							drawTile((row + column + 1) % 2, 0, column, row);
+						}
+					}
+
+					for (let layerIndex = mapLinesByLayer.length - 1; layerIndex >= 0; layerIndex -= 1) {
+						const mapLines = mapLinesByLayer[layerIndex];
+						for (let destinationY = 0; destinationY < mapLines.length; destinationY += 1) {
+							const line = mapLines[destinationY];
+							for (let destinationX = 0; destinationX < line.length; destinationX += 1) {
+								const character = line[destinationX];
+								if (character === ".") continue;
+
+								const definition = tilemap.legend?.[character];
+								if (!definition) {
+									if (!warnedCharacters.has(character)) {
+										console.warn(`No tilemap legend entry for "${character}".`);
+										warnedCharacters.add(character);
+									}
+									continue;
+								}
+
+								if (definition.tile) {
+									const isAnimated = Array.isArray(definition.tile[0]);
+									let sourceTile = definition.tile;
+
+									if (isAnimated) {
+										const delay = definition.delay;
+										if (!Number.isFinite(delay) || delay <= 0 || definition.tile.length === 0) {
+											if (!warnedCharacters.has(character)) {
+												console.warn(`Invalid animation delay or frames for "${character}".`);
+												warnedCharacters.add(character);
+											}
+											continue;
+										}
+
+										const validFrames = definition.tile.every(
+											(frame) =>
+												Array.isArray(frame) &&
+												frame.length === 2 &&
+												frame.every(Number.isInteger) &&
+												frame[0] >= 0 &&
+												frame[1] >= 0 &&
+												frame[0] < columns &&
+												frame[1] < rows,
+										);
+
+										if (!validFrames) {
+											if (!warnedCharacters.has(character)) {
+												console.warn(`Invalid animation frame for "${character}".`);
+												warnedCharacters.add(character);
+											}
+											continue;
+										}
+
+										const delayMs = delay * 1000;
+										animationDelays.add(delayMs);
+										const elapsed = performance.now() - animationStart;
+										const frameIndex = Math.floor(elapsed / delayMs) % definition.tile.length;
+										sourceTile = definition.tile[frameIndex];
+									} else if (
+										!Array.isArray(sourceTile) ||
+										sourceTile.length !== 2 ||
+										!sourceTile.every(Number.isInteger) ||
+										sourceTile[0] < 0 ||
+										sourceTile[1] < 0 ||
+										sourceTile[0] >= columns ||
+										sourceTile[1] >= rows
+									) {
+										console.warn(`Invalid tile definition for "${character}".`);
+										continue;
+									}
+
+									drawTile(sourceTile[0], sourceTile[1], destinationX, destinationY);
+									continue;
+								}
+
+								if (!definition.object) continue;
+								const object = tilemap.objects?.[definition.object];
+								if (!object) {
+									console.warn(`Unknown object "${definition.object}" for "${character}".`);
+									continue;
+								}
+
+								const { x, y, width, height } = object;
+								if (
+									![x, y, width, height].every(Number.isInteger) ||
+									x < 0 ||
+									y < 0 ||
+									width < 1 ||
+									height < 1 ||
+									x + width > columns ||
+									y + height > rows
+								) {
+									console.warn(`Invalid object definition "${definition.object}".`);
+									continue;
+								}
+
+								context.drawImage(
+									tileset,
+									x * tileSize,
+									y * tileSize,
+									width * tileSize,
+									height * tileSize,
+									destinationX * tileSize,
+									(destinationY - height + 1) * tileSize,
+									width * tileSize,
+									height * tileSize,
+								);
+							}
+						}
+					}
+				}
+
+				function scheduleAnimationFrame() {
+					if (animationDelays.size === 0) return;
+					const elapsed = performance.now() - animationStart;
+					const untilNextFrame = Math.min(...[...animationDelays].map((delay) => delay - (elapsed % delay)));
+					setTimeout(
+						() => {
+							drawScene();
+							scheduleAnimationFrame();
+						},
+						Math.max(1, untilNextFrame),
+					);
+				}
+
+				drawScene();
+				scheduleAnimationFrame();
+			}
+
+			renderMap().catch((error) => console.error("Tilemap rendering failed:", error));
+		</script>
+	</body>
+</html>
