@@ -10,15 +10,7 @@
 		<h1>Mov's Vau.lt</h1>
 		<div class="tilemap-stage">
 			<canvas id="tilemap" role="img" draggable="false"></canvas>
-			<div
-				id="intro-box"
-				class="text-box"
-				data-grid-x="25.5"
-				data-grid-y="19.5"
-				data-grid-width="13"
-				data-grid-height="7"
-				aria-label="Introduction"
-			>
+			<div id="intro-box" class="text-box" data-grid-x="25.5" data-grid-y="19.5" data-grid-width="13" data-grid-height="7" aria-label="Introduction">
 				Hi! My name is <span style="color: #00cdf9">Man-o-Valor</span>, but you can call me <span style="color: #00cdf9">Mov</span>. I like to code,
 				make games, and draw!<br /><br />This is my personal website, Mov's Vault. It's where I'll keep all of my art and projects. You can also send me
 				anonymous messages!
@@ -64,8 +56,6 @@
 			const strawpageBox = document.getElementById("strawpage-box");
 			const strawpageButton = document.getElementById("strawpage-button");
 			const strawpageStatus = document.getElementById("strawpage-status");
-			const strawpageWebhookUrl = // yes, i committed my webhook url. its already public
-				"https://discord.com/api/webhooks/1568168752036581447/vCJfJEKI7T4fyAGZcHqWyGHX5L7VMWoChCYoT3KfFgHGEkARODl8fToGGNHe7WHHkw-W";
 
 			let tileDisplaySize;
 
@@ -76,18 +66,21 @@
 				strawpageButton.disabled = true;
 				strawpageStatus.textContent = "Sending message.";
 				try {
-					const response = await fetch(strawpageWebhookUrl, {
+					const response = await fetch("/api/strawpage", {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ content: message, allowed_mentions: { parse: [] } }),
+						body: JSON.stringify({ message }),
 					});
-					if (!response.ok) throw new Error(`Discord returned ${response.status}.`);
+					if (!response.ok) {
+						const result = await response.json().catch(() => ({}));
+						throw new Error(result.error || `Message could not be sent (${response.status}).`);
+					}
 
 					strawpageBox.value = "";
 					strawpageStatus.textContent = "Message sent.";
 				} catch (error) {
 					console.error("Sending the Strawpage message failed:", error);
-					strawpageStatus.textContent = "Message could not be sent. Please try again.";
+					strawpageStatus.textContent = error.message || "Message could not be sent. Please try again.";
 				} finally {
 					strawpageButton.disabled = false;
 				}
