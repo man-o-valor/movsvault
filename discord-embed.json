@@ -13,9 +13,34 @@
         "accessory": {
           "type": 11,
           "media": {
-            "url": "https://movsvau.lt/movahoy.png"
+            "url": "https://movsvau.lt/movhi.png"
           }
         }
+      },
+      {
+        "type": 1,
+        "components": [
+          {
+            "type": 2,
+            "style": 5,
+            "label": "GitHub",
+            "emoji": {
+              "name": "github",
+              "id": "1568474712202420264"
+            },
+            "url": "https://github.com/man-o-valor"
+          },
+          {
+            "type": 2,
+            "style": 5,
+            "label": "Twitter",
+            "emoji": {
+              "name": "twitter",
+              "id": "1568474751335145584"
+            },
+            "url": "https://x.com/man_o_valor"
+          }
+        ]
       }
     ]
   }
