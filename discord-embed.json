@@ -1,0 +1,22 @@
+{
+  "component": {
+    "type": 17,
+    "components": [
+      {
+        "type": 9,
+        "components": [
+          {
+            "type": 10,
+            "content": "My name is Man-o-Valor, but you can call me Mov! I make games and draw, and this is my personal website!"
+          }
+        ],
+        "accessory": {
+          "type": 11,
+          "media": {
+            "url": "https://movsvau.lt/movahoy.png"
+          }
+        }
+      }
+    ]
+  }
+}
