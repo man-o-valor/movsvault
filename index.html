@@ -11,7 +11,7 @@
 		<h1>Mov's Vau.lt</h1>
 		<div class="tilemap-stage">
 			<canvas id="tilemap" role="img" draggable="false"></canvas>
-			<div id="intro-box" class="text-box" data-grid-x="25.5" data-grid-y="19.5" data-grid-width="13" data-grid-height="7" aria-label="Introduction">
+			<div id="intro-box" class="text-box" data-grid-x="25.5" data-grid-y="18.5" data-grid-width="13" data-grid-height="7" aria-label="Introduction">
 				Hi! My name is <span style="color: #00cdf9">Man-o-Valor</span>, but you can call me <span style="color: #00cdf9">Mov</span>. I like to code,
 				make games, and draw!<br /><br />This is my personal website, Mov's Vault. It's where I'll keep all of my art and projects. You can also send me
 				anonymous messages!
@@ -20,7 +20,7 @@
 				id="strawpage-box"
 				class="text-box editable-text-box"
 				data-grid-x="25.5"
-				data-grid-y="27.5"
+				data-grid-y="26.5"
 				data-grid-width="10"
 				data-grid-height="6"
 				aria-label="Anonymous message box"
@@ -31,17 +31,59 @@
 				id="strawpage-button"
 				type="button"
 				class="tilemap-button strawpage-button"
-				data-grid-x="36.5"
-				data-grid-y="30.5"
-				data-grid-width="2"
-				data-grid-height="2"
-				data-normal-slice="0,4"
-				data-hover-slice="3,4"
-				data-icon-tile="4,3"
-				data-hover-icon-tile="5,3"
+				data-grid-x="36"
+				data-grid-y="26.5"
+				data-grid-width="2.5"
+				data-grid-height="6"
+				data-normal-slice="12,0"
+				data-hover-slice="15,0"
+				data-icon-tile="10,5"
+				data-hover-icon-tile="11,5"
 				aria-label="Send anonymous message"
 			></button>
 			<span id="strawpage-status" class="visually-hidden" role="status" aria-live="polite"></span>
+			<button onclick="window.open('https://x.com/man_o_valor');"
+				id="twitter-button"
+				type="button"
+				class="tilemap-button"
+				data-grid-x="25.5"
+				data-grid-y="33"
+				data-grid-width="4"
+				data-grid-height="2"
+				data-normal-slice="12,0"
+				data-hover-slice="15,0"
+				data-icon-tile="10,6"
+				data-hover-icon-tile="11,6"
+				aria-label="Visit my Twitter"
+			></button>
+			<button onclick="window.open('https://github.com/man-o-valor');"
+				id="github-button"
+				type="button"
+				class="tilemap-button"
+				data-grid-x="30"
+				data-grid-y="33"
+				data-grid-width="4"
+				data-grid-height="2"
+				data-normal-slice="12,3"
+				data-hover-slice="15,3"
+				data-icon-tile="10,7"
+				data-hover-icon-tile="11,7"
+				aria-label="Visit my Github"
+			></button>
+			<button onclick="window.open('https://man-o-valor.itch.io');"
+				id="itch-button"
+				type="button"
+				class="tilemap-button"
+				data-grid-x="34.5"
+				data-grid-y="33"
+				data-grid-width="4"
+				data-grid-height="2"
+				data-normal-slice="12,6"
+				data-hover-slice="15,6"
+				data-icon-tile="10,8"
+				data-hover-icon-tile="11,8"
+				aria-label="Visit my Itch.io"
+			></button>
 		</div>
 		<script src="tilemap.js"></script>
 		<script>
@@ -241,16 +283,16 @@
 				for (const button of mapButtons) {
 					const width = Number.parseFloat(button.dataset.gridWidth);
 					const height = Number.parseFloat(button.dataset.gridHeight);
-					if (!Number.isInteger(width) || !Number.isInteger(height) || width < 2 || height < 2) {
-						console.warn("Tilemap buttons need integer grid width and height values of at least 2.");
+					if (!Number.isFinite(width) || !Number.isFinite(height) || width < 2 || height < 2) {
+						console.warn("Tilemap buttons need grid width and height values of at least 2.");
 						continue;
 					}
 
 					const art = document.createElement("canvas");
 					art.className = "tilemap-button__art";
 					art.setAttribute("aria-hidden", "true");
-					art.width = width * tileSize;
-					art.height = height * tileSize;
+					art.width = Math.round(width * tileSize);
+					art.height = Math.round(height * tileSize);
 					button.prepend(art);
 
 					let activePointerId = null;
