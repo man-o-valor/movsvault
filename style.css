@@ -1,6 +1,6 @@
 :root {
 	color-scheme: dark;
-	background: #fff;
+	background: #e3e7ee;
 	font-family: system-ui, sans-serif;
 	overflow-x: clip;
 }
@@ -29,7 +29,7 @@ body {
 	padding: 0;
 	position: relative;
 	overflow-x: clip;
-	background: #fff;
+	background: #e3e7ee;
 }
 
 .tilemap-stage {
@@ -56,7 +56,7 @@ canvas {
 
 h1 {
 	position: absolute;
-	top: 6.3ch;
+	top: 10.6ch;
 	left: 50%;
 	z-index: 1;
 	transform: translateX(-50%);
