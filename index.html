@@ -11,7 +11,7 @@
 		<h1>Mov's Vau.lt</h1>
 		<div class="tilemap-stage">
 			<canvas id="tilemap" role="img" draggable="false"></canvas>
-			<div id="intro-box" class="text-box" data-grid-x="25.5" data-grid-y="18.5" data-grid-width="13" data-grid-height="7" aria-label="Introduction">
+			<div id="intro-box" class="text-box" data-grid-x="13.5" data-grid-y="18.5" data-grid-width="13" data-grid-height="7" aria-label="Introduction">
 				Hi! My name is <span style="color: #00cdf9">Man-o-Valor</span>, but you can call me <span style="color: #00cdf9">Mov</span>. I like to code,
 				make games, and draw!<br /><br />This is my personal website, Mov's Vault. It's where I'll keep all of my art and projects. You can also send me
 				anonymous messages!
@@ -19,8 +19,8 @@
 			<textarea
 				id="strawpage-box"
 				class="text-box editable-text-box"
-				data-grid-x="25.5"
-				data-grid-y="26.5"
+				data-grid-x="13.5"
+				data-grid-y="26"
 				data-grid-width="10"
 				data-grid-height="6"
 				aria-label="Anonymous message box"
@@ -31,8 +31,8 @@
 				id="strawpage-button"
 				type="button"
 				class="tilemap-button strawpage-button"
-				data-grid-x="36"
-				data-grid-y="26.5"
+				data-grid-x="24"
+				data-grid-y="26"
 				data-grid-width="2.5"
 				data-grid-height="6"
 				data-normal-slice="12,0"
@@ -46,8 +46,8 @@
 				id="twitter-button"
 				type="button"
 				class="tilemap-button"
-				data-grid-x="25.5"
-				data-grid-y="33"
+				data-grid-x="13.5"
+				data-grid-y="32.5"
 				data-grid-width="4"
 				data-grid-height="2"
 				data-normal-slice="12,0"
@@ -60,8 +60,8 @@
 				id="github-button"
 				type="button"
 				class="tilemap-button"
-				data-grid-x="30"
-				data-grid-y="33"
+				data-grid-x="18"
+				data-grid-y="32.5"
 				data-grid-width="4"
 				data-grid-height="2"
 				data-normal-slice="12,3"
@@ -74,8 +74,8 @@
 				id="itch-button"
 				type="button"
 				class="tilemap-button"
-				data-grid-x="34.5"
-				data-grid-y="33"
+				data-grid-x="22.5"
+				data-grid-y="32.5"
 				data-grid-width="4"
 				data-grid-height="2"
 				data-normal-slice="12,6"
@@ -90,7 +90,6 @@
 			const tilemap = window.tilemapData;
 
 			const tileSize = 16;
-			const mapSize = 64;
 			const canvas = document.getElementById("tilemap");
 			const maximumTileDisplaySize = 50;
 			const minimumTilesAcross = 16;
@@ -100,6 +99,8 @@
 			const strawpageButton = document.getElementById("strawpage-button");
 			const strawpageStatus = document.getElementById("strawpage-status");
 
+			let mapWidth;
+			let mapHeight;
 			let tileDisplaySize;
 
 			async function sendStrawpageMessage() {
@@ -133,7 +134,7 @@
 
 			function updateDisplaySize() {
 				tileDisplaySize = Math.min(maximumTileDisplaySize, window.innerWidth / minimumTilesAcross);
-				document.documentElement.style.setProperty("--map-width", `${mapSize * tileDisplaySize}px`);
+				document.documentElement.style.setProperty("--map-width", `${mapWidth * tileDisplaySize}px`);
 				document.documentElement.style.setProperty("--tile-display-size", `${tileDisplaySize}px`);
 
 				for (const textBox of textBoxes) {
@@ -151,15 +152,9 @@
 				}
 			}
 
-			updateDisplaySize();
-			window.addEventListener("resize", updateDisplaySize);
-
 			for (const eventName of ["contextmenu", "dragstart", "selectstart"]) {
 				canvas.addEventListener(eventName, (event) => event.preventDefault());
 			}
-
-			canvas.width = mapSize * tileSize;
-			canvas.height = mapSize * tileSize;
 
 			const context = canvas.getContext("2d");
 			const tileset = new Image();
@@ -318,6 +313,27 @@
 			}
 
 			async function renderMap() {
+				const mapLayers = Array.isArray(tilemap.map) ? tilemap.map : [tilemap.map];
+				if (mapLayers.some((layer) => typeof layer !== "string")) {
+					throw new Error("Every tilemap layer must be a multiline string.");
+				}
+
+				const mapLinesByLayer = mapLayers.map((layer) => {
+					const lines = layer.split(/\r?\n/);
+					if (lines.at(-1) === "") lines.pop();
+					return lines;
+				});
+				mapWidth = Math.max(...mapLinesByLayer.flatMap((lines) => lines.map((line) => line.length)));
+				mapHeight = Math.max(...mapLinesByLayer.map((lines) => lines.length));
+				if (mapWidth < 1 || mapHeight < 1) {
+					throw new Error("Tilemap data must contain at least one row and one column.");
+				}
+
+				updateDisplaySize();
+				window.addEventListener("resize", updateDisplaySize);
+				canvas.width = mapWidth * tileSize;
+				canvas.height = mapHeight * tileSize;
+
 				await new Promise((resolve, reject) => {
 					tileset.onload = resolve;
 					tileset.onerror = reject;
@@ -328,27 +344,14 @@
 				const rows = Math.floor(tileset.height / tileSize);
 				initializeMapButtons(columns, rows);
 
-				const mapLayers = Array.isArray(tilemap.map) ? tilemap.map : [tilemap.map];
-				if (mapLayers.some((layer) => typeof layer !== "string")) {
-					throw new Error("Every tilemap layer must be a multiline string.");
-				}
-
-				const mapLinesByLayer = mapLayers.map((layer, layerIndex) => {
-					const lines = layer.split(/\r?\n/).slice(0, mapSize);
-					if (lines.some((line) => line.length > mapSize)) {
-						throw new Error(`Tilemap layer ${layerIndex} rows must be at most ${mapSize} characters wide.`);
-					}
-					return lines;
-				});
-
 				const animationStart = performance.now();
 				const animationDelays = new Set();
 				const warnedCharacters = new Set();
 
 				function drawScene() {
 					context.clearRect(0, 0, canvas.width, canvas.height);
-					for (let row = 0; row < mapSize; row += 1) {
-						for (let column = 0; column < mapSize; column += 1) {
+					for (let row = 0; row < mapHeight; row += 1) {
+						for (let column = 0; column < mapWidth; column += 1) {
 							drawTile((row + column + 1) % 2, 0, column, row);
 						}
 					}
