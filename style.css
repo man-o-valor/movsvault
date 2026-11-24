@@ -104,6 +104,14 @@ h1 {
 	overflow: auto;
 }
 
+.text-box a {
+    color: #0c2e44;
+    text-decoration: underline;
+    text-decoration-thickness: calc(1ch / 6);
+	text-underline-offset: calc(1ch / 6);
+	text-decoration-color: #00cdf9;
+}
+
 .editable-text-box {
 	display: block;
 	resize: none;
@@ -158,4 +166,39 @@ h1 {
 	clip: rect(0, 0, 0, 0);
 	white-space: nowrap;
 	border: 0;
+}
+
+body {
+  cursor:
+  url("cursors/default_cursor.png") 0 0,
+  auto;
+}
+
+button, 
+a, 
+input[type="submit"], 
+input[type="button"], 
+[role="button"],
+.tilemap-button,
+.tilemap-button * {
+  cursor: url("cursors/hand_cursor.png") 8 0, pointer;
+}
+
+input[type="text"], input[type="email"], input[type="password"], textarea, [contenteditable="true"] {
+  cursor:
+  url("cursors/text_cursor.png") 8 20,
+  text;
+}
+
+@keyframes screenShake {
+  0% { transform: translateX(-50%) translate(0, 0); }
+  20% { transform: translateX(-50%) translate(-2px, 1px); }
+  40% { transform: translateX(-50%) translate(2px, -1px); }
+  60% { transform: translateX(-50%) translate(-2px, -1px); }
+  80% { transform: translateX(-50%) translate(2px, 1px); }
+  100% { transform: translateX(-50%) translate(0, 0); }
+}
+
+.shake {
+  animation: screenShake 0.3s step-end;
 }
