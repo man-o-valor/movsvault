@@ -9,8 +9,8 @@
 	</head>
 	<body>
 		<div class="tilemap-stage">
+			<canvas id="tilemap-bg" class="tilemap-canvas" role="img" draggable="false"></canvas>
 			<h1>Mov's Vau.lt</h1>
-			<canvas id="tilemap" role="img" draggable="false"></canvas>
 			<div id="intro-box" class="text-box" data-grid-x="17.5" data-grid-y="22.5" data-grid-width="13" data-grid-height="8.5" aria-label="Introduction">
 				Hi! My name is <span style="color: #0098dc">Man-o-Valor</span>, but you can call me <span style="color: #0098dc">Mov</span>. I like to code,
 				make games, and draw!<br /><br />This is my personal website, Mov's Vault. It's where I'll keep all of my art and projects. You can also send me
@@ -92,6 +92,7 @@
 				data-hover-icon-tile="11,8"
 				aria-label="Visit my Itch.io"
 			></button>
+			<canvas id="tilemap-fg" class="tilemap-canvas" role="img" draggable="false"></canvas>
 		</div>
 		<script>
 			let mapLayers = [

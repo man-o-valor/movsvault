@@ -1,6 +1,8 @@
 const tilemap = window.tilemapData;
 const tileSize = 16;
-const canvas = document.getElementById("tilemap");
+const stage = document.querySelector(".tilemap-stage");
+const canvasBg = document.getElementById("tilemap-bg");
+const canvasFg = document.getElementById("tilemap-fg");
 const maximumTileDisplaySize = 50;
 const minimumTilesAcross = 16;
 const textBoxes = document.querySelectorAll(".text-box");
@@ -63,13 +65,16 @@ function updateDisplaySize() {
 }
 
 for (const eventName of ["contextmenu", "dragstart", "selectstart"]) {
-	canvas.addEventListener(eventName, (event) => event.preventDefault());
+	canvasBg.addEventListener(eventName, (event) => event.preventDefault());
+	canvasFg.addEventListener(eventName, (event) => event.preventDefault());
 }
 
-const context = canvas.getContext("2d");
+const contextBg = canvasBg.getContext("2d");
+const contextFg = canvasFg.getContext("2d");
 const tileset = new Image();
 
-context.imageSmoothingEnabled = false;
+contextBg.imageSmoothingEnabled = false;
+contextFg.imageSmoothingEnabled = false;
 
 const treeStateMap = new Map();
 let audioCtx = null;
@@ -109,11 +114,9 @@ function playSound(key) {
 	try {
 		const source = audioCtx.createBufferSource();
 		source.buffer = buffer;
-
-				const minRate = 0.8;
+		const minRate = 0.8;
 		const maxRate = 1.2;
 		source.playbackRate.value = minRate + Math.random() * (maxRate - minRate);
-
 		source.connect(audioCtx.destination);
 		source.start(0);
 	} catch (e) {
@@ -121,18 +124,8 @@ function playSound(key) {
 	}
 }
 
-function drawTile(sourceX, sourceY, destinationX, destinationY) {
-	context.drawImage(
-		tileset,
-		sourceX * tileSize,
-		sourceY * tileSize,
-		tileSize,
-		tileSize,
-		destinationX * tileSize,
-		destinationY * tileSize,
-		tileSize,
-		tileSize,
-	);
+function drawTile(ctx, sourceX, sourceY, destinationX, destinationY) {
+	ctx.drawImage(tileset, sourceX * tileSize, sourceY * tileSize, tileSize, tileSize, destinationX * tileSize, destinationY * tileSize, tileSize, tileSize);
 }
 
 function parseTileCoordinates(value) {
@@ -148,26 +141,11 @@ function drawButtonIcon(button, buttonContext, hovered, columns, rows) {
 
 	if (iconTile) {
 		const [x, y] = parseTileCoordinates(iconTile) ?? [];
-		if (x === undefined || x >= columns || y >= rows) {
-			console.warn(`Invalid ${hovered ? "hover " : ""}icon tile for button: ${iconTile}.`);
-			return;
-		}
+		if (x === undefined || x >= columns || y >= rows) return;
 		icon = { x, y, width: 1, height: 1 };
 	} else if (iconObjectName) {
 		icon = tilemap.objects?.[iconObjectName];
-		if (
-			!icon ||
-			![icon.x, icon.y, icon.width, icon.height].every(Number.isInteger) ||
-			icon.x < 0 ||
-			icon.y < 0 ||
-			icon.width < 1 ||
-			icon.height < 1 ||
-			icon.x + icon.width > columns ||
-			icon.y + icon.height > rows
-		) {
-			console.warn(`Invalid ${hovered ? "hover " : ""}icon object for button: ${iconObjectName}.`);
-			return;
-		}
+		if (!icon) return;
 	} else {
 		return;
 	}
@@ -193,10 +171,7 @@ function drawButton(button, hovered, columns, rows) {
 	const slice = parseTileCoordinates(sliceValue);
 	buttonContext.clearRect(0, 0, buttonContext.canvas.width, buttonContext.canvas.height);
 
-	if (!slice || slice[0] + 3 > columns || slice[1] + 3 > rows) {
-		console.warn(`Invalid ${hovered ? "hover " : "normal "}nine-slice for button: ${sliceValue}.`);
-		return;
-	}
+	if (!slice || slice[0] + 3 > columns || slice[1] + 3 > rows) return;
 
 	const width = buttonContext.canvas.width;
 	const height = buttonContext.canvas.height;
@@ -236,10 +211,7 @@ function initializeMapButtons(columns, rows) {
 	for (const button of mapButtons) {
 		const width = Number.parseFloat(button.dataset.gridWidth);
 		const height = Number.parseFloat(button.dataset.gridHeight);
-		if (!Number.isFinite(width) || !Number.isFinite(height) || width < 2 || height < 2) {
-			console.warn("Tilemap buttons need grid width and height values of at least 2.");
-			continue;
-		}
+		if (!Number.isFinite(width) || !Number.isFinite(height) || width < 2 || height < 2) continue;
 
 		const art = document.createElement("canvas");
 		art.className = "tilemap-button__art";
@@ -275,7 +247,7 @@ async function renderMap(mapLayers) {
 		throw new Error("Every tilemap layer must be a multiline string.");
 	}
 
-		loadSounds();
+	loadSounds();
 
 	const mapLinesByLayer = mapLayers.map((layer) => {
 		const lines = layer.split(/\r?\n/);
@@ -288,7 +260,7 @@ async function renderMap(mapLayers) {
 		throw new Error("Tilemap data must contain at least one row and one column.");
 	}
 
-		treeStateMap.clear();
+	treeStateMap.clear();
 	if (mapLinesByLayer[1]) {
 		mapLinesByLayer[1] = mapLinesByLayer[1].map((line, y) => {
 			let updatedLine = "";
@@ -307,7 +279,8 @@ async function renderMap(mapLayers) {
 						isFalling: false,
 						isGone: false,
 					});
-					updatedLine += "s"; 				} else {
+					updatedLine += "s";
+				} else {
 					updatedLine += char;
 				}
 			}
@@ -317,8 +290,11 @@ async function renderMap(mapLayers) {
 
 	updateDisplaySize();
 	window.addEventListener("resize", updateDisplaySize);
-	canvas.width = mapWidth * tileSize;
-	canvas.height = mapHeight * tileSize;
+
+	canvasBg.width = mapWidth * tileSize;
+	canvasBg.height = mapHeight * tileSize;
+	canvasFg.width = mapWidth * tileSize;
+	canvasFg.height = mapHeight * tileSize;
 
 	await new Promise((resolve, reject) => {
 		tileset.onload = resolve;
@@ -332,17 +308,10 @@ async function renderMap(mapLayers) {
 
 	const animationStart = performance.now();
 	const animationDelays = new Set();
-	const warnedCharacters = new Set();
 
-	function drawCharacter(character, destinationX, destinationY, transform = null) {
+	function drawCharacter(ctx, character, destinationX, destinationY, transform = null) {
 		const definition = tilemap.legend?.[character];
-		if (!definition) {
-			if (!warnedCharacters.has(character)) {
-				console.warn(`No tilemap legend entry for "${character}".`);
-				warnedCharacters.add(character);
-			}
-			return;
-		}
+		if (!definition) return;
 
 		if (definition.tile) {
 			const isAnimated = Array.isArray(definition.tile[0]);
@@ -350,78 +319,34 @@ async function renderMap(mapLayers) {
 
 			if (isAnimated) {
 				const delay = definition.delay;
-				if (!Number.isFinite(delay) || delay <= 0 || definition.tile.length === 0) {
-					if (!warnedCharacters.has(character)) {
-						console.warn(`Invalid animation delay or frames for "${character}".`);
-						warnedCharacters.add(character);
-					}
-					return;
-				}
-
-				const validFrames = definition.tile.every(
-					(frame) =>
-						Array.isArray(frame) &&
-						frame.length === 2 &&
-						frame.every(Number.isInteger) &&
-						frame[0] >= 0 &&
-						frame[1] >= 0 &&
-						frame[0] < columns &&
-						frame[1] < rows,
-				);
-
-				if (!validFrames) {
-					if (!warnedCharacters.has(character)) {
-						console.warn(`Invalid animation frame for "${character}".`);
-						warnedCharacters.add(character);
-					}
-					return;
-				}
-
+				if (!Number.isFinite(delay) || delay <= 0 || definition.tile.length === 0) return;
 				const delayMs = delay * 1000;
 				animationDelays.add(delayMs);
 				const elapsed = performance.now() - animationStart;
 				const frameIndex = Math.floor(elapsed / delayMs) % definition.tile.length;
 				sourceTile = definition.tile[frameIndex];
-			} else if (
-				!Array.isArray(sourceTile) ||
-				sourceTile.length !== 2 ||
-				!sourceTile.every(Number.isInteger) ||
-				sourceTile[0] < 0 ||
-				sourceTile[1] < 0 ||
-				sourceTile[0] >= columns ||
-				sourceTile[1] >= rows
-			) {
-				console.warn(`Invalid tile definition for "${character}".`);
-				return;
 			}
 
-			drawTile(sourceTile[0], sourceTile[1], destinationX, destinationY);
+			drawTile(ctx, sourceTile[0], sourceTile[1], destinationX, destinationY);
 			return;
 		}
 
 		if (!definition.object) return;
 		const object = tilemap.objects?.[definition.object];
-		if (!object) {
-			console.warn(`Unknown object "${definition.object}" for "${character}".`);
-			return;
-		}
+		if (!object) return;
 
 		const { x, y, width, height } = object;
-		if (![x, y, width, height].every(Number.isInteger) || x < 0 || y < 0 || width < 1 || height < 1 || x + width > columns || y + height > rows) {
-			console.warn(`Invalid object definition "${definition.object}".`);
-			return;
-		}
 
 		if (transform) {
-			context.save();
-			context.imageSmoothingEnabled = false;
-			context.globalAlpha = transform.opacity ?? 1;
+			ctx.save();
+			ctx.imageSmoothingEnabled = false;
+			ctx.globalAlpha = transform.opacity ?? 1;
 			const pivotX = (destinationX + width / 2) * tileSize + (transform.shakeOffset ?? 0);
 			const pivotY = (destinationY + 0.5) * tileSize;
-			context.translate(pivotX, pivotY);
-			context.rotate(transform.fallAngle ?? 0);
+			ctx.translate(pivotX, pivotY);
+			ctx.rotate(transform.fallAngle ?? 0);
 			const inset = 0.5;
-			context.drawImage(
+			ctx.drawImage(
 				tileset,
 				x * tileSize + inset,
 				y * tileSize + inset,
@@ -432,9 +357,9 @@ async function renderMap(mapLayers) {
 				width * tileSize,
 				height * tileSize,
 			);
-			context.restore();
+			ctx.restore();
 		} else {
-			context.drawImage(
+			ctx.drawImage(
 				tileset,
 				x * tileSize,
 				y * tileSize,
@@ -448,33 +373,45 @@ async function renderMap(mapLayers) {
 		}
 	}
 
-	function drawScene() {
-		context.clearRect(0, 0, canvas.width, canvas.height);
+	function drawMapLayer(ctx, mapLines) {
+		if (!mapLines) return;
+		for (let destinationY = 0; destinationY < mapLines.length; destinationY += 1) {
+			const line = mapLines[destinationY];
+			for (let destinationX = 0; destinationX < line.length; destinationX += 1) {
+				const character = line[destinationX];
+				if (character === ".") continue;
+				drawCharacter(ctx, character, destinationX, destinationY);
+			}
+		}
+	}
+
+	function drawBackgroundScene() {
+		contextBg.clearRect(0, 0, canvasBg.width, canvasBg.height);
 		for (let row = 0; row < mapHeight; row += 1) {
 			for (let column = 0; column < mapWidth; column += 1) {
-				drawTile((row + column + 1) % 2, 0, column, row);
+				drawTile(contextBg, (row + column + 1) % 2, 0, column, row);
 			}
 		}
 
-		for (let layerIndex = mapLinesByLayer.length - 1; layerIndex >= 0; layerIndex -= 1) {
-			const mapLines = mapLinesByLayer[layerIndex];
-			for (let destinationY = 0; destinationY < mapLines.length; destinationY += 1) {
-				const line = mapLines[destinationY];
-				for (let destinationX = 0; destinationX < line.length; destinationX += 1) {
-					const character = line[destinationX];
-					if (character === ".") continue;
-					drawCharacter(character, destinationX, destinationY);
-				}
-			}
-
-			if (layerIndex === 1) {
-				const sortedTrees = [...treeStateMap.values()].filter((tree) => !tree.isGone).sort((a, b) => a.y - b.y);
-
-				for (const tree of sortedTrees) {
-					drawCharacter(tree.char, tree.x, tree.y, tree);
-				}
-			}
+		for (let layerIndex = mapLinesByLayer.length - 1; layerIndex >= 1; layerIndex -= 1) {
+			drawMapLayer(contextBg, mapLinesByLayer[layerIndex]);
 		}
+	}
+
+	function drawForegroundScene() {
+		contextFg.clearRect(0, 0, canvasFg.width, canvasFg.height);
+
+		const sortedTrees = [...treeStateMap.values()].filter((tree) => !tree.isGone).sort((a, b) => a.y - b.y);
+		for (const tree of sortedTrees) {
+			drawCharacter(contextFg, tree.char, tree.x, tree.y, tree);
+		}
+
+		drawMapLayer(contextFg, mapLinesByLayer[0]);
+	}
+
+	function drawScene() {
+		drawBackgroundScene();
+		drawForegroundScene();
 	}
 
 	function animateTreeFall(tree) {
@@ -486,16 +423,16 @@ async function renderMap(mapLayers) {
 			const elapsed = now - start;
 			const progress = Math.min(1, elapsed / duration);
 
-						if (elapsed >= duration / 2 && !groundHitPlayed) {
+			if (elapsed >= duration / 2 && !groundHitPlayed) {
 				groundHitPlayed = true;
 				playSound("groundHit");
 
-								const stage = document.querySelector(".tilemap-stage");
 				if (stage) {
 					stage.classList.add("shake");
 					setTimeout(() => {
 						stage.classList.remove("shake");
-					}, 300); 				}
+					}, 300);
+				}
 			}
 
 			if (progress < 0.5) {
@@ -516,44 +453,50 @@ async function renderMap(mapLayers) {
 		requestAnimationFrame(step);
 	}
 
-	canvas.addEventListener("click", (event) => {
-		const rect = canvas.getBoundingClientRect();
-		const scaleX = canvas.width / rect.width;
-		const scaleY = canvas.height / rect.height;
-		const canvasX = (event.clientX - rect.left) * scaleX;
-		const canvasY = (event.clientY - rect.top) * scaleY;
+	stage.addEventListener(
+		"click",
+		(event) => {
+			const rect = canvasFg.getBoundingClientRect();
+			const scaleX = canvasFg.width / rect.width;
+			const scaleY = canvasFg.height / rect.height;
+			const canvasX = (event.clientX - rect.left) * scaleX;
+			const canvasY = (event.clientY - rect.top) * scaleY;
 
-		const candidates = [...treeStateMap.values()].filter((tree) => !tree.isFalling && !tree.isGone).sort((a, b) => b.y - a.y);
+			const candidates = [...treeStateMap.values()].filter((tree) => !tree.isFalling && !tree.isGone).sort((a, b) => b.y - a.y);
 
-		for (const tree of candidates) {
-			const def = tilemap.legend?.[tree.char];
-			const obj = def?.object ? tilemap.objects?.[def.object] : null;
-			const width = (obj?.width ?? 1) * tileSize;
-			const height = ((obj?.height ?? 2) - 1) * tileSize;
-			const left = tree.x * tileSize;
-			const top = (tree.y - (obj?.height ?? 1) + 2) * tileSize;
+			for (const tree of candidates) {
+				const def = tilemap.legend?.[tree.char];
+				const obj = def?.object ? tilemap.objects?.[def.object] : null;
+				const width = (obj?.width ?? 1) * tileSize;
+				const height = ((obj?.height ?? 2) - 1) * tileSize;
+				const left = tree.x * tileSize;
+				const top = (tree.y - (obj?.height ?? 1) + 2) * tileSize;
 
-			if (canvasX >= left && canvasX <= left + width && canvasY >= top && canvasY <= top + height) {
-				tree.health -= 1;
+				if (canvasX >= left && canvasX <= left + width && canvasY >= top && canvasY <= top + height) {
+					event.stopPropagation();
+					event.preventDefault();
 
-				if (tree.health > 0) {
-					playSound("chop");
-					tree.shakeOffset = (Math.random() < 0.5 ? -1 : 1) * 2;
-					drawScene();
-					setTimeout(() => {
-						tree.shakeOffset = 0;
+					tree.health -= 1;
+					if (tree.health > 0) {
+						playSound("chop");
+						tree.shakeOffset = Math.random() < 0.5 ? -1 : 1;
 						drawScene();
-					}, 100);
-				} else {
-										playSound("chop");
-					playSound("finalChop");
-					tree.isFalling = true;
-					animateTreeFall(tree);
+						setTimeout(() => {
+							tree.shakeOffset = 0;
+							drawScene();
+						}, 100);
+					} else {
+						playSound("chop");
+						playSound("finalChop");
+						tree.isFalling = true;
+						animateTreeFall(tree);
+					}
+					break;
 				}
-				break;
 			}
-		}
-	});
+		},
+		true,
+	);
 
 	function scheduleAnimationFrame() {
 		if (animationDelays.size === 0) return;
